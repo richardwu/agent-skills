@@ -1,12 +1,12 @@
 ---
 name: fix-pr
-description: "Fix issues on the current PR: address Claude Code review comments and fix failing CI checks. Use when asked to fix PR, fix review comments, fix CI, or fix checks. Triggers on: fix pr, fix review, fix ci, fix checks, fix failing checks."
+description: "Fix issues on the current PR: address bot (eg Claude Code, CodeRabbit, or custom GHA) review comments and fix failing CI checks. Use when asked to fix PR, fix review comments, fix CI, or fix checks. Triggers on: fix pr, fix review, fix ci, fix checks, fix failing checks."
 user-invocable: true
 ---
 
 # Fix PR
 
-Fixes the current PR by addressing Claude Code review comments and fixing failing CI status checks.
+Fixes the current PR by addressing bot (eg Claude Code, CodeRabbit, or custom GHA) review comments and fixing failing CI status checks.
 
 ---
 
@@ -28,19 +28,19 @@ If no PR is found for the current branch, tell the user and stop.
 
 ---
 
-## Step 2: Fix Claude Code Review Comments
+## Step 2: Fix Bot Review Comments
 
 ### 2a. Fetch review comments
 
-Get the latest Claude Code review comments on the PR:
+Get reviews from bots on the PR:
 
 ```
-gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --jq '.[] | select(.user.login == "github-actions[bot]" or .user.login == "claude-code-review[bot]" or (.body | test("claude|Claude|code review"; "i"))) | {id: .id, body: .body, state: .state}'
+gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --jq '.[] | select(.user.type == "Bot") | {id: .id, user: .user.login, body: .body, state: .state}'
 ```
 
-Also fetch inline review comments:
+Also fetch inline review comments from bots:
 ```
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --jq '.[] | select(.user.login == "github-actions[bot]" or .user.login == "claude-code-review[bot]" or (.body | test("claude|Claude"; "i"))) | {path: .path, line: .line, body: .body}'
+gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | select(.user.type == "Bot") | {id: .id, body: .body, user: .user.login}'
 ```
 
 If there are no review comments, skip to Step 3.
@@ -64,7 +64,7 @@ The user may specify bugs NOT to fix when invoking this skill (e.g. `/fix-pr ski
 
 Present the list of issues you plan to fix to the user before proceeding. Format:
 ```
-Found N issues from Claude Code review:
+Found N issues from bot review:
 1. [file:line] Description of issue
 2. [file:line] Description of issue
    (skipped - user excluded)
@@ -75,7 +75,7 @@ Fixing N issues...
 
 ### 2d. Fix the issues
 
-Read each affected file, understand the context, and apply fixes. Follow the project's existing patterns and conventions (check CLAUDE.md).
+Read each affected file, understand the context, and apply fixes. Follow the project's existing patterns and conventions (check CLAUDE.md or AGENTS.md).
 
 ---
 
@@ -134,4 +134,4 @@ After all fixes are applied:
 - If a review comment is ambiguous or you're unsure how to fix it, ask the user
 - If a CI check failure is unrelated to this PR's changes (e.g. flaky test, pre-existing issue), tell the user rather than attempting a fix
 - Always verify fixes locally before committing (re-run the failing command)
-- If the Claude Code review hasn't posted yet (PR was just created), tell the user to wait and retry
+- If the bot review hasn't posted yet (PR was just created), tell the user to wait and retry
