@@ -89,10 +89,12 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
   # Run the selected tool with the ralph prompt
   if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+    # Inject SCRIPT_DIR into prompt.md so Amp reads the correct prd.json and progress.txt
+    OUTPUT=$(sed "s|{{SCRIPT_DIR}}|$SCRIPT_DIR|g" "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
   else
     # Claude Code: use --dangerously-skip-permissions for autonomous operation, --print for output
-    OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
+    # Inject SCRIPT_DIR into CLAUDE.md so Claude reads the correct prd.json and progress.txt
+    OUTPUT=$(sed "s|{{SCRIPT_DIR}}|$SCRIPT_DIR|g" "$SCRIPT_DIR/CLAUDE.md" | claude --dangerously-skip-permissions --print 2>&1 | tee /dev/stderr) || true
   fi
   
   # Check for completion signal
