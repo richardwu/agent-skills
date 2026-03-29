@@ -2,6 +2,14 @@
 
 Collection of reusable skills for autonomous coding agents.
 
+## Installing a Skill
+
+```sh
+npx skills install <skill-name>
+```
+
+This will install the specified skill into your project for use with Claude agents.
+
 ## Ralph
 
 Long-running AI agent loop for implementing user stories from PRDs.
