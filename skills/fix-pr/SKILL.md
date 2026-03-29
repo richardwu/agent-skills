@@ -73,17 +73,12 @@ Only consider the **latest** comment from each bot (by id). Ignore older comment
 
 ### 2d. Parse actionable issues from bot reviews
 
-From the latest bot review comments, identify actionable bugs and issues. Ignore:
-- Style nitpicks and suggestions that are not bugs
+From the latest bot review comments, identify actionable issues. Ignore:
 - Comments that are purely informational
 - Comments on code that is not part of this PR's changes
 - Issues marked as resolved or "✅" in the review
 
-Focus on:
-- Actual bugs flagged (🔴 or similar severity markers)
-- Security issues
-- Logic errors
-- Missing error handling that could cause crashes
+If the user asked to ignore nits or minor issues, also ignore style nitpicks and suggestions that are not bugs.
 
 ### 2e. Check user exclusions
 
@@ -106,21 +101,15 @@ Check which CI checks failed:
 gh pr checks {pr_number} --json name,state
 ```
 
-For each failing check, determine the type from the CI workflow (`.github/workflows/ci.yml`):
-- **lint**: `bunx biome ci .` — fix lint/format issues
-- **typecheck**: `bunx tsc --noEmit` — fix type errors
-- **test**: `bun run test` — fix failing tests
-- **build**: `bun run build` — fix build errors
-- **validate-i18n**: `bun run validate:i18n` — fix missing i18n keys
+For each failing check, look at the CI workflow config (e.g. `.github/workflows/`) to determine the command that failed.
 
 Reproduce and fix locally:
-1. **lint** failures: Run `bunx biome ci .` to see errors, then `bunx biome check --write .` to auto-fix. Manually fix the rest.
-2. **typecheck** failures: Run the failing tsc command, read errors, fix type issues.
-3. **test** failures: Run `bun run test`, read test files and source code, fix issues.
-4. **build** failures: Run `bun run build`, read errors, fix them.
-5. **validate-i18n** failures: Run `bun run validate:i18n`, add missing keys.
+1. Run the failing command locally to see the errors
+2. Review the PR diff against the base branch (`git diff main...HEAD`) and causally trace what changes could have caused the failure. Focus your fix on code introduced or modified in this PR — don't patch unrelated code.
+3. Fix the issues based on your causal analysis
+4. Re-run the same command to verify it passes before moving on
 
-After fixing, re-run the same command to verify it passes before moving on.
+For example, if a lint check failed, run the linter locally, apply auto-fixes if available, and manually fix the rest. If a typecheck failed, run the type checker and fix the type errors.
 
 ### 2g. Fix bot review issues
 
@@ -157,10 +146,9 @@ Print a summary table of everything fixed across all rounds:
 
 | Round | Source | Issue | File | Status |
 |-------|--------|-------|------|--------|
-| 1 | CI: lint | Formatting error in workspaces.ts | convex/functions/workspaces.ts | ✅ Fixed |
-| 1 | claude[bot] | Missing membership status check | convex/functions/workspaces.ts:454 | ✅ Fixed |
-| 2 | CI: typecheck | Type error from previous fix | convex/functions/workspaces.ts:351 | ✅ Fixed |
-| - | claude[bot] | Use Doc<"users"> instead of inline type | convex/functions/workspaces.ts:353 | ⏭️ Skipped (style nit) |
+| 1 | CI: lint | Formatting error | src/api/users.ts | ✅ Fixed |
+| 1 | coderabbit[bot] | Missing null check on response | src/api/users.ts:54 | ✅ Fixed |
+| 2 | CI: typecheck | Type error from previous fix | src/api/users.ts:51 | ✅ Fixed |
 
 All checks passing. PR is ready for review.
 ```
