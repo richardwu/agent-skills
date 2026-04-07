@@ -1,6 +1,6 @@
 ---
 name: ralph
-description: "Convert PRDs to prd.json format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create prd.json from this, ralph json."
+description: "Convert PRDs to prd.json format for the Ralph autonomous agent system. Parses markdown PRDs, maps sections to Ralph's JSON schema, validates story sizing and dependency ordering, and enforces verifiable acceptance criteria. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create prd.json from this, ralph json."
 user-invocable: true
 ---
 
@@ -52,13 +52,10 @@ Ralph spawns a fresh Amp instance per iteration with no memory of previous work.
 ### Right-sized stories:
 - Add a database column and migration
 - Add a UI component to an existing page
-- Update a server action with new logic
-- Add a filter dropdown to a list
 
 ### Too big (split these):
-- "Build the entire dashboard" - Split into: schema, queries, UI components, filters
-- "Add authentication" - Split into: schema, middleware, login UI, session handling
-- "Refactor the API" - Split into one story per endpoint or pattern
+- "Build the entire dashboard" — Split into: schema, queries, UI components, filters
+- "Add authentication" — Split into: schema, middleware, login UI, session handling
 
 **Rule of thumb:** If you cannot describe the change in 2-3 sentences, it is too big.
 
@@ -74,45 +71,17 @@ Stories execute in priority order. Earlier stories must not depend on later ones
 3. UI components that use the backend
 4. Dashboard/summary views that aggregate data
 
-**Wrong order:**
-1. UI component (depends on schema that does not exist yet)
-2. Schema change
-
 ---
 
 ## Acceptance Criteria: Must Be Verifiable
 
 Each criterion must be something Ralph can CHECK, not something vague.
 
-### Good criteria (verifiable):
-- "Add `status` column to tasks table with default 'pending'"
-- "Filter dropdown has options: All, Active, Completed"
-- "Clicking delete shows confirmation dialog"
-- "Typecheck passes"
-- "Tests pass"
+**Good** (verifiable): `"Add status column to tasks table with default 'pending'"`, `"Filter dropdown has options: All, Active, Completed"`, `"Typecheck passes"`
 
-### Bad criteria (vague):
-- "Works correctly"
-- "User can do X easily"
-- "Good UX"
-- "Handles edge cases"
+**Bad** (vague): `"Works correctly"`, `"Good UX"`, `"Handles edge cases"`
 
-### Always include as final criterion:
-```
-"Typecheck passes"
-```
-
-For stories with testable logic, also include:
-```
-"Tests pass"
-```
-
-### For stories that change UI, also include:
-```
-"Verify in browser using dev-browser skill"
-```
-
-Frontend stories are NOT complete until visually verified. Ralph will use the dev-browser skill to navigate to the page, interact with the UI, and confirm changes work.
+**Always include** `"Typecheck passes"` as final criterion. For testable logic add `"Tests pass"`. For UI stories add `"Verify in browser using dev-browser skill"`.
 
 ---
 
@@ -129,119 +98,19 @@ Frontend stories are NOT complete until visually verified. Ralph will use the de
 
 ## Splitting Large PRDs
 
-If a PRD has big features, split them:
-
-**Original:**
-> "Add user notification system"
-
-**Split into:**
-1. US-001: Add notifications table to database
-2. US-002: Create notification service for sending notifications
-3. US-003: Add notification bell icon to header
-4. US-004: Create notification dropdown panel
-5. US-005: Add mark-as-read functionality
-6. US-006: Add notification preferences page
-
-Each is one focused change that can be completed and verified independently.
+If a PRD has big features, split them. For details and a full splitting example, see [references/splitting-example.md](references/splitting-example.md).
 
 ---
 
 ## Example
 
-**Input PRD:**
-```markdown
-# Task Status Feature
-
-Add ability to mark tasks with different statuses.
-
-## Requirements
-- Toggle between pending/in-progress/done on task list
-- Filter list by status
-- Show status badge on each task
-- Persist status in database
-```
-
-**Output prd.json:**
-```json
-{
-  "project": "TaskApp",
-  "branchName": "ralph/task-status",
-  "description": "Task Status Feature - Track task progress with status indicators",
-  "userStories": [
-    {
-      "id": "US-001",
-      "title": "Add status field to tasks table",
-      "description": "As a developer, I need to store task status in the database.",
-      "acceptanceCriteria": [
-        "Add status column: 'pending' | 'in_progress' | 'done' (default 'pending')",
-        "Generate and run migration successfully",
-        "Typecheck passes"
-      ],
-      "priority": 1,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-002",
-      "title": "Display status badge on task cards",
-      "description": "As a user, I want to see task status at a glance.",
-      "acceptanceCriteria": [
-        "Each task card shows colored status badge",
-        "Badge colors: gray=pending, blue=in_progress, green=done",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 2,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-003",
-      "title": "Add status toggle to task list rows",
-      "description": "As a user, I want to change task status directly from the list.",
-      "acceptanceCriteria": [
-        "Each row has status dropdown or toggle",
-        "Changing status saves immediately",
-        "UI updates without page refresh",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 3,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-004",
-      "title": "Filter tasks by status",
-      "description": "As a user, I want to filter the list to see only certain statuses.",
-      "acceptanceCriteria": [
-        "Filter dropdown: All | Pending | In Progress | Done",
-        "Filter persists in URL params",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 4,
-      "passes": false,
-      "notes": ""
-    }
-  ]
-}
-```
+For a complete input-to-output conversion example, see [references/conversion-example.md](references/conversion-example.md).
 
 ---
 
 ## Archiving Previous Runs
 
-**Before writing a new prd.json, check if there is an existing one from a different feature:**
-
-1. Read the current `prd.json` if it exists
-2. Check if `branchName` differs from the new feature's branch name
-3. If different AND `progress.txt` has content beyond the header:
-   - Create archive folder: `archive/YYYY-MM-DD-feature-name/`
-   - Copy current `prd.json` and `progress.txt` to archive
-   - Reset `progress.txt` with fresh header
-
-**The ralph.sh script handles this automatically** when you run it, but if you are manually updating prd.json between runs, archive first.
+**Before writing a new prd.json, check if there is an existing one from a different feature.** If `branchName` differs and `progress.txt` has content, archive to `archive/YYYY-MM-DD-feature-name/` before overwriting. The `ralph.sh` script handles this automatically during runs.
 
 ---
 

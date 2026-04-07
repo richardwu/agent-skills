@@ -11,6 +11,17 @@ description: Multi-agent code review using 3 parallel subagents (Claude, GPT, Ge
 - `gh` CLI (authenticated)
 - Git repository with `origin/main` remote tracking branch
 
+## Diff Command Reference
+
+| Change type | Command |
+|---|---|
+| Committed changes | `git --no-pager diff --no-color $BASE..HEAD -- <path>` |
+| Uncommitted (staged/unstaged) | `git --no-pager diff --no-color HEAD -- <path>` |
+| Untracked files | `cat <path>` (review full contents) |
+| Check if untracked | `git ls-files --others --exclude-standard -- <path>` |
+
+Use these commands throughout the workflow wherever diffs are needed.
+
 ## Workflow
 
 ### Step 1 -- Compute review base commit
@@ -177,10 +188,3 @@ which subagents timed out if any]
 
 For each issue in section 3, include which subagents flagged it. Issues flagged by all 3 subagents are highest confidence and should be listed first within their priority level.
 
-## Error Handling
-
-- **Empty diff**: Report "No changes to review" and stop
-- **Base commit failure**: Report error and suggest checking remote branches
-- **Subagent timeout/error**: Continue with available results, note failure in Cross-Review Notes
-- **GitHub comment failure**: Output report in response, flag the failure
-- **Binary files**: List them in report but skip review
