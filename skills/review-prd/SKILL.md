@@ -31,7 +31,7 @@ Record results — these apply to all stories with "Typecheck passes" or "Tests 
 For each story in `userStories`, evaluate every acceptance criterion:
 
 **Code-verifiable criteria** (e.g., "Add status column", "Install package X"):
-- Search the codebase for the expected code changes
+- Search the codebase: `grep -r "status" src/db/` or `git log --oneline --all -- src/db/migrations/`
 - Read relevant files to confirm the implementation matches the criterion
 - Check imports, schema changes, migrations, component structure
 
@@ -41,7 +41,7 @@ For each story in `userStories`, evaluate every acceptance criterion:
 
 **Browser-verifiable criteria** (e.g., "Verify in browser using dev-browser skill"):
 - Start the dev server if not already running (use CLAUDE.md instructions)
-- Use browser automation to navigate to the relevant page
+- Use the [dev-browser skill](../dev-browser/SKILL.md) to navigate to the relevant page
 - Take screenshots and verify visual/interactive behavior
 - Check that UI elements exist, respond to clicks, display correct data
 

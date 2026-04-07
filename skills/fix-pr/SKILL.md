@@ -159,13 +159,3 @@ Include:
 - The file and line where relevant
 - Status: ✅ Fixed, ⏭️ Skipped (with reason), 🚫 Excluded (user requested)
 
----
-
-## Important Notes
-
-- Do NOT fix issues the user explicitly excluded
-- Do NOT make unrelated changes or refactors while fixing
-- If a review comment is ambiguous or you're unsure how to fix it, ask the user
-- If a CI check failure is unrelated to this PR's changes (e.g. flaky test, pre-existing issue), tell the user rather than attempting a fix
-- Always verify fixes locally before committing (re-run the failing command)
-- Max 3 rounds to avoid infinite loops — escalate to user after that
