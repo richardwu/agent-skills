@@ -52,6 +52,7 @@ Ralph stops when all stories are complete or max iterations reached.
 - **ralph**: Convert an existing PRD to prd.json format for Ralph
 - **review-prd**: Verify Ralph PRD user stories are implemented correctly
 - **fix-pr**: Fix issues on the current PR
+- **explain-repo**: Explain a repository at 1000, 100, and 10 foot levels with architecture diagrams and contribution guidance
 
 ## Skills Directory
 
