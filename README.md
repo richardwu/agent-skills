@@ -2,6 +2,13 @@
 
 Collection of reusable skills for autonomous coding agents.
 
+## Skills
+
+- **prd**: Generate a Product Requirements Document
+- **ralph**: Convert an existing PRD to prd.json format for Ralph
+- **review-prd**: Verify Ralph PRD user stories are implemented correctly
+- **fix-pr**: Fix issues on the current PR
+
 ## Installing a Skill
 
 ```sh
@@ -45,13 +52,6 @@ Ralph reads a `prd.json` with user stories and iteratively:
 5. Updates the PRD progress
 
 Ralph stops when all stories are complete or max iterations reached.
-
-### Skills
-
-- **prd**: Generate a Product Requirements Document
-- **ralph**: Convert an existing PRD to prd.json format for Ralph
-- **review-prd**: Verify Ralph PRD user stories are implemented correctly
-- **fix-pr**: Fix issues on the current PR
 
 ## Skills Directory
 
