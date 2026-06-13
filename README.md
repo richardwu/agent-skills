@@ -4,11 +4,15 @@ Collection of reusable skills for autonomous coding agents.
 
 ## Skills
 
+Skills are located in the `./skills/` directory and can be used by agents.
+
+- **analyze-feedback**: Analyze customer or user feedback to identify underlying needs, patterns, and product directions
+- **explain-repo**: Explain a repository at 1000, 100, and 10 foot levels with architecture diagrams and contribution guidance
+- **fix-pr**: Fix issues on the current PR
+- **multi-agent-review**: Run a multi-agent code review against origin/main and post a consolidated report to GitHub
 - **prd**: Generate a Product Requirements Document
 - **ralph**: Convert an existing PRD to prd.json format for Ralph
 - **review-prd**: Verify Ralph PRD user stories are implemented correctly
-- **fix-pr**: Fix issues on the current PR
-- **explain-repo**: Explain a repository at 1000, 100, and 10 foot levels with architecture diagrams and contribution guidance
 
 ## Installing a Skill
 
@@ -53,7 +57,3 @@ Ralph reads a `prd.json` with user stories and iteratively:
 5. Updates the PRD progress
 
 Ralph stops when all stories are complete or max iterations reached.
-
-## Skills Directory
-
-Skills are located in the `./skills/` directory and can be used by Claude agents.
