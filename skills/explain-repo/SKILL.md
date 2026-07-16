@@ -14,8 +14,9 @@ Produce an evidence-based repository explanation in three layers: 1000 foot, 100
 1. Inspect the repository before explaining it.
 2. Identify the stack, entry points, package/build tools, runtime boundaries, tests, and deployment clues.
 3. Trace how the main components interact by reading source files, configs, routes, schemas, services, and scripts.
-4. Produce a three-level explanation using the report structure below.
-5. Include file references for important claims. If something is inferred rather than directly shown in code, label it as an inference.
+4. Before diving into detailed components, orient the reader around the repo's goal, why that goal matters, and the primary high-level architecture used to achieve it.
+5. Produce a three-level explanation using the report structure below.
+6. Include file references for important claims. If something is inferred rather than directly shown in code, label it as an inference.
 
 Do not rely only on filenames or README text. Confirm key claims against source code or configuration where practical.
 
@@ -38,14 +39,19 @@ Use this structure unless the user asks for a different format.
 
 ### 1000 Foot View
 
-Explain:
+Open with a concise orientation that answers, in order:
 
-- What the repo does and who/what it serves.
+- What goal the repo exists to accomplish and who/what it serves.
+- Why the repo and its goal are important to its users, operators, or surrounding system.
+- How it primarily accomplishes that goal at a high architectural level. Focus on the main execution path before discussing secondary capabilities.
+
+Then explain:
+
 - The primary product or system capabilities.
 - The main frameworks, languages, runtimes, package managers, and build tools.
 - The broad architecture shape, such as frontend app, backend API, worker system, CLI, library, monorepo, or deployment bundle.
 
-Keep this section high level and readable by a technical stakeholder who has not opened the code.
+Keep this section high level and readable by a technical stakeholder who has not opened the code. Add a focused Mermaid diagram when it makes the primary architecture or execution path materially easier to understand; do not force a diagram for a simple single-component repo.
 
 ### 100 Foot View
 
