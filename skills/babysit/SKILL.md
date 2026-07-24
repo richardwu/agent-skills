@@ -1,5 +1,5 @@
 ---
-name: fix-pr
+name: babysit
 description: "Fix issues on the current PR: address bot (eg Claude Code, CodeRabbit, or custom GHA) review comments and fix failing CI checks. Use when asked to fix PR, fix review comments, fix CI, or fix checks. Triggers on: fix pr, fix review, fix ci, fix checks, fix failing checks."
 user-invocable: true
 ---
@@ -133,7 +133,7 @@ If the user explicitly asked to ignore nits or minor issues, then also skip styl
 
 ### 2e. Check user exclusions
 
-The user may specify issues NOT to fix when invoking this skill (e.g. `/fix-pr skip US-033 skeleton issue`). If the user specified exclusions, match them against the identified issues and skip those.
+The user may specify issues NOT to fix when invoking this skill (e.g. `/babysit skip US-033 skeleton issue`). If the user specified exclusions, match them against the identified issues and skip those.
 
 ### 2f. Check for contradictions
 
