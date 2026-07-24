@@ -216,6 +216,30 @@ Include:
 - The file and line where relevant
 - Status: ✅ Fixed, ⏭️ Skipped (with reason), 🚫 Excluded (user requested), ❓ Skipped (contradiction — awaiting user decision)
 
+Also include CI wall-time summary statistics for the final successful PR run and compare them
+with the latest comparable completed run on the base branch (normally `main`):
+- Report the overall CI wall time from the earliest check start to the latest check completion.
+- Report each completed CI workflow/check wall time (`completed_at - started_at`) and its base-branch
+  comparison when a matching run is available.
+- Show the absolute and percentage change for both the overall wall time and each comparable
+  workflow/check. Keep summed check time separate from overall wall time because parallel checks
+  overlap.
+- Flag a change as significant when wall time increased or decreased by at least 20% **and** at
+  least 60 seconds. Clearly label significant regressions and improvements.
+- Exclude skipped or cancelled checks from duration comparisons. If timestamps or a comparable
+  base-branch run are unavailable, report the comparison as unavailable rather than guessing.
+
+Example:
+```
+### CI Wall Times
+
+| Scope | PR | Latest main | Change | Assessment |
+|-------|----|-------------|--------|------------|
+| Overall CI window | 8m 14s | 6m 02s | +2m 12s (+36.5%) | ⚠️ Significant increase |
+| lint | 1m 08s | 1m 03s | +5s (+7.9%) | No significant change |
+| e2e | 5m 41s | 7m 02s | -1m 21s (-19.2%) | No significant change |
+```
+
 ---
 
 ## Important Notes
