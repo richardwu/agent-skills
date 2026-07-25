@@ -8,7 +8,7 @@ Skills are located in the `./skills/` directory and can be used by agents.
 
 - **analyze-feedback**: Analyze customer or user feedback to identify underlying needs, patterns, and product directions
 - **explain-repo**: Explain a repository at 1000, 100, and 10 foot levels with architecture diagrams and contribution guidance
-- **fix-pr**: Fix issues on the current PR
+- **babysit**: Fix issues on the current PR
 - **multi-agent-review**: Run a multi-agent code review against origin/main and post a consolidated report to GitHub
 - **prd**: Generate a Product Requirements Document
 - **ralph**: Convert an existing PRD to prd.json format for Ralph

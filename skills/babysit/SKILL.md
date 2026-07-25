@@ -1,5 +1,5 @@
 ---
-name: fix-pr
+name: babysit
 description: "Fix issues on the current PR: address bot (eg Claude Code, CodeRabbit, or custom GHA) review comments and fix failing CI checks. Use when asked to fix PR, fix review comments, fix CI, or fix checks. Triggers on: fix pr, fix review, fix ci, fix checks, fix failing checks."
 user-invocable: true
 ---
@@ -36,17 +36,32 @@ Repeat the following loop. Each iteration is called a "round". Track what you fi
 
 **Max rounds: 10.** If issues remain after 10 rounds, stop and tell the user what's left.
 
-### 2a. Wait for CI checks to settle
+### 2a. Monitor CI and start actionable failures early
 
 Poll CI status until all checks have completed (no `PENDING` or `IN_PROGRESS` states):
 
 ```
-gh pr checks {pr_number} --json name,state
+gh pr checks {pr_number} --json name,state,link
 ```
 
 Poll every 30 seconds. If checks haven't settled after 10 minutes, tell the user and stop.
 
 While waiting, print a brief status update each poll (e.g. "Waiting for CI... 3/6 checks complete").
+
+While any check is still `PENDING` or `IN_PROGRESS`, treat the PR state as provisional in all
+user-facing updates. Do **not** say or imply that there is "nothing left to address",
+"no comments left", "all clean", "ready to merge", or equivalent until every check has
+completed successfully and the bot review collection/parsing steps below are complete.
+
+If any non-review CI check fails while other checks are still pending, start investigating and fixing that failure immediately instead of waiting for the entire matrix to settle. Review jobs are checks whose primary output is a bot review/comment rather than a project validation result, such as `code-review`, `security-review`, `claude-review`, or `coderabbit`; handle those through the bot review flow below.
+
+For each early non-review failure:
+- Inspect the failing job logs and the workflow command.
+- Reproduce the failure locally using the same command, or the narrowest reliable command from the logs for test failures.
+- Fix the issue and verify the local reproduction passes.
+- Record the check name, failing command, local repro command, and fix for the final summary.
+
+You may edit files while other checks are still pending, but do **not** stage, commit, or push until all CI checks have finished and the bot review collection steps below are complete. If another non-review check fails later in the same round, repeat the local repro/fix loop for that check before committing.
 
 ### 2b. Wait for bot review (if applicable)
 
@@ -118,7 +133,7 @@ If the user explicitly asked to ignore nits or minor issues, then also skip styl
 
 ### 2e. Check user exclusions
 
-The user may specify issues NOT to fix when invoking this skill (e.g. `/fix-pr skip US-033 skeleton issue`). If the user specified exclusions, match them against the identified issues and skip those.
+The user may specify issues NOT to fix when invoking this skill (e.g. `/babysit skip US-033 skeleton issue`). If the user specified exclusions, match them against the identified issues and skip those.
 
 ### 2f. Check for contradictions
 
@@ -150,16 +165,20 @@ Fixing M issues...
 
 Check which CI checks failed:
 ```
-gh pr checks {pr_number} --json name,state
+gh pr checks {pr_number} --json name,state,link
 ```
 
 For each failing check, look at the CI workflow config (e.g. `.github/workflows/`) to determine the command that failed.
 
 Reproduce and fix locally:
 1. Run the failing command locally to see the errors
-2. Review the PR diff against the base branch (`git diff origin/{baseRefName}...HEAD`, or `git diff origin/main...HEAD` if `baseRefName` is unavailable) and causally trace what changes could have caused the failure. Focus your fix on code introduced or modified in this PR — don't patch unrelated code.
-3. Fix the issues based on your causal analysis
-4. Re-run the same command to verify it passes before moving on
+2. If a test check failed, use the CI logs to reproduce it locally before pushing:
+   - Prefer the exact failing test file, test name, project, shard, or command from the job logs when available.
+   - After the narrow repro passes, run the parent command from the workflow when practical so the fix is not only narrowly green.
+   - If the failure cannot be reproduced locally after a reasonable attempt, run the closest local equivalent, document the gap, and avoid pushing unless the best available local check passes.
+3. Review the PR diff against the base branch (`git diff origin/{baseRefName}...HEAD`, or `git diff origin/main...HEAD` if `baseRefName` is unavailable) and causally trace what changes could have caused the failure. Focus your fix on code introduced or modified in this PR — don't patch unrelated code.
+4. Fix the issues based on your causal analysis
+5. Re-run the same command to verify it passes before moving on
 
 For example, if a lint check failed, run the linter locally, apply auto-fixes if available, and manually fix the rest. If a typecheck failed, run the type checker and fix the type errors.
 
@@ -169,26 +188,34 @@ Read each affected file, understand the context, and apply fixes. Follow the pro
 
 ### 2j. Commit and push
 
-After all fixes for this round are applied — and you have addressed issues from **all** bots that posted complete reviews/comments:
+After all fixes for this round are applied, all CI checks have finished, and you have addressed issues from **all** bots that posted complete reviews/comments:
 
-1. Stage the changed files (use specific file names, not `git add -A`)
-2. Commit with a descriptive message following the repo's commit style:
+1. Confirm there are no remaining `PENDING` or `IN_PROGRESS` checks:
+   ```
+   gh pr checks {pr_number} --json name,state
+   ```
+2. Stage the changed files (use specific file names, not `git add -A`)
+3. Commit with a descriptive message following the repo's commit style:
    ```
    fix: address PR review feedback
 
    - [describe each fix briefly]
    ```
-3. Immediately before pushing, record the per-bot baseline (bot identity + latest issue comment ID + latest PR review ID) and the set of bot identities that posted complete reviews/comments this round. Use this baseline for step 2b in the next round.
-4. Push to the current branch
+4. Immediately before pushing, record the per-bot baseline (bot identity + latest issue comment ID + latest PR review ID) and the set of bot identities that posted complete reviews/comments this round. Use this baseline for step 2b in the next round.
+5. Push to the current branch
 
 ### 2k. Check if done
 
 Do **not** assume the PR is clean just because you addressed all comments in this round. Bots may flag new issues on the updated code. If you pushed changes in this round, always loop back to step 2a to wait for CI and fresh bot reviews.
 
 Exit the loop only when **all** of the following are true:
-- All CI checks pass
+- All CI checks have completed and passed
 - No new actionable bot review comments appeared since the last push
 - No unresolved bot review issues remain
+
+If any check is still pending or in progress, do not summarize the PR as clean or
+done. Report the checks still pending and continue polling or stop with an
+explicitly provisional status if the polling timeout has been reached.
 
 If this is round 10 or higher, stop looping — tell the user the remaining issues and ask for guidance.
 
@@ -207,7 +234,7 @@ Print a summary table of everything fixed across all rounds:
 | 1 | coderabbit[bot] | Missing null check on response | src/api/users.ts:54 | ✅ Fixed |
 | 2 | CI: typecheck | Type error from previous fix | src/api/users.ts:51 | ✅ Fixed |
 
-All checks passing. PR is ready for review.
+All checks passed. PR is ready for review.
 ```
 
 Include:
@@ -215,6 +242,74 @@ Include:
 - The source (which bot or CI check)
 - The file and line where relevant
 - Status: ✅ Fixed, ⏭️ Skipped (with reason), 🚫 Excluded (user requested), ❓ Skipped (contradiction — awaiting user decision)
+
+Also include CI wall-time summary statistics for the final successful PR run and compare them
+with the latest comparable successful runs on the base branch (normally `main`). A comparable run
+is the most recent successful run of the same workflow, matched by workflow ID, on `baseRefName`.
+
+Fetch the final PR commit's workflow runs, their jobs, and the matching base-branch runs with:
+```
+repo_slug=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+head_sha=$(gh pr view --json headRefOid --jq .headRefOid)
+base_ref=$(gh pr view --json baseRefName --jq .baseRefName)
+gh api "repos/${repo_slug}/actions/runs?head_sha=${head_sha}&per_page=100" \
+  --jq '[.workflow_runs[] |
+    select(.status == "completed" and .conclusion == "success")] |
+    group_by(.workflow_id) | map(max_by(.created_at))[] |
+    {id, name, workflow_id, status, conclusion}'
+gh api --paginate "repos/${repo_slug}/actions/runs/${run_id}/jobs?per_page=100" \
+  --jq '.jobs[] | {name, status, conclusion, started_at, completed_at}'
+gh api "repos/${repo_slug}/actions/workflows/${workflow_id}/runs?branch=${base_ref}&status=success&per_page=1" \
+  --jq '.workflow_runs | map(select(.status == "completed" and .conclusion == "success")) |
+    .[0] | {id, name, workflow_id, status, conclusion}'
+# Repeat the jobs query for each base-branch run ID returned by the preceding command.
+```
+
+In the second and third commands, `run_id` and `workflow_id` come from the first command's `id`
+and `workflow_id` fields. Run the jobs query for each final-commit workflow run and each selected
+base-branch workflow run. If the base query returns no run, that workflow has no available
+comparison.
+
+Report at job/check granularity: each table row represents an individual job from the jobs endpoint,
+not a workflow run. Match jobs within corresponding workflows by job/check name and calculate their
+wall times from job `started_at` and `completed_at` values.
+
+- Report the overall PR CI wall time as `min(job.started_at)` to `max(job.completed_at)` across all
+  completed jobs in all final-commit workflows. Never use workflow `updated_at` as an end time.
+- For the overall comparison, use only workflows that have a selected successful base-branch run.
+  Calculate both the PR and base-branch windows from the jobs in that same comparable-workflow
+  subset. Keep jobs from PR-only workflows in the per-job table with an unavailable comparison, but
+  exclude them from the overall comparison. If no workflow has a base-branch counterpart, omit the
+  overall comparison row.
+- When any PR-only workflow exists, render two separate rows: `Full PR CI window` covers every
+  final-commit workflow and has no base comparison, while `Comparable CI window` covers only the
+  comparable-workflow subset and includes the base comparison. When every workflow is comparable,
+  render one `Overall CI window` row and note that all workflows are comparable.
+- Report every completed job/check wall time (`completed_at - started_at`) and its base-branch
+  comparison when a matching job is available.
+- Show the absolute and percentage change for both the overall wall time and each comparable
+  job/check. Keep summed check time separate from overall wall time because parallel checks
+  overlap.
+- Flag a change as significant when wall time increased or decreased by at least 20% **and** at
+  least 60 seconds. Clearly label significant regressions and improvements.
+- Exclude skipped or cancelled checks from duration comparisons. If timestamps or a comparable
+  base-branch run are unavailable, report the comparison as unavailable rather than guessing.
+
+Example:
+```
+### CI Wall Times
+
+| Scope | PR | Latest main | Change | Assessment |
+|-------|----|-------------|--------|------------|
+| Full PR CI window | 9m 02s | N/A (includes PR-only workflows) | — | Informational |
+| Comparable CI window | 8m 14s | 6m 02s | +2m 12s (+36.5%) | ⚠️ Significant increase |
+| lint | 1m 08s | 1m 03s | +5s (+7.9%) | No significant change |
+| e2e | 5m 41s | 7m 02s | -1m 21s (-19.2%) | No significant change |
+| new-check | 45s | N/A (no matching main run) | — | — |
+```
+
+When every workflow is comparable, replace the first two example rows with one
+`Overall CI window` row containing the comparison.
 
 ---
 
