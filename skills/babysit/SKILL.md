@@ -53,7 +53,9 @@ user-facing updates. Do **not** say or imply that there is "nothing left to addr
 "no comments left", "all clean", "ready to merge", or equivalent until every check has
 completed successfully and the bot review collection/parsing steps below are complete.
 
-If any non-review CI check fails while other checks are still pending, start investigating and fixing that failure immediately instead of waiting for the entire matrix to settle. Review jobs are checks whose primary output is a bot review/comment rather than a project validation result, such as `code-review`, `security-review`, `claude-review`, or `coderabbit`; handle those through the bot review flow below.
+For every failed check, including review jobs, inspect its job logs and report why it failed using the log procedure in step 2h. Do this as soon as the failure appears, even if other checks are still pending.
+
+If any non-review CI check fails while other checks are still pending, start investigating and fixing that failure immediately instead of waiting for the entire matrix to settle. Review jobs are checks whose primary output is a bot review/comment rather than a project validation result, such as `code-review`, `security-review`, `claude-review`, or `coderabbit`; handle their review findings through the bot review flow below.
 
 For each early non-review failure:
 - Inspect the failing job logs and the workflow command.
@@ -168,7 +170,14 @@ Check which CI checks failed:
 gh pr checks {pr_number} --json name,state,link
 ```
 
-For each failing check, look at the CI workflow config (e.g. `.github/workflows/`) to determine the command that failed.
+For each failing check, open its `link` and inspect the failing job's logs. For GitHub Actions, extract the run ID and job ID from the link and run:
+```
+gh run view {run_id} --job {job_id} --log-failed
+```
+
+If failed-step logs are unavailable or incomplete, fetch the full job log with `--log` instead. For external checks, use the provider's logs linked from the check.
+
+Identify the failing step, command, and error from the logs, then inspect the CI workflow config (e.g. `.github/workflows/`) for context. Report the check name, log link, relevant error, and cause to the user before fixing or retrying. Distinguish a confirmed cause from a hypothesis. If logs are inaccessible or inconclusive, report that limitation instead of guessing from the check name or status. Include review-job failures even if no bot review was posted.
 
 Reproduce and fix locally:
 1. Run the failing command locally to see the errors
@@ -240,6 +249,7 @@ All checks passed. PR is ready for review.
 Include:
 - Every issue encountered (fixed, skipped, or excluded)
 - The source (which bot or CI check)
+- For every failed check, its log link, relevant error, and diagnosed cause (or why the cause remains unknown)
 - The file and line where relevant
 - Status: ✅ Fixed, ⏭️ Skipped (with reason), 🚫 Excluded (user requested), ❓ Skipped (contradiction — awaiting user decision)
 
