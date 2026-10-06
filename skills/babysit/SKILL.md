@@ -36,6 +36,8 @@ Repeat the following loop. Each iteration is called a "round". Track what you fi
 
 **Max rounds: 10.** If issues remain after 10 rounds, stop and tell the user what's left.
 
+**Polling limits apply per round, not to the overall babysit session.** Each round gets a fresh 10-minute CI polling window (step 2a) and a separate 10-minute bot review polling window (steps 2b–2c). These limits do not cap time spent fixing or verifying issues.
+
 ### 2a. Monitor CI and start actionable failures early
 
 Poll CI status until all checks have completed (no `PENDING` or `IN_PROGRESS` states):
@@ -44,7 +46,7 @@ Poll CI status until all checks have completed (no `PENDING` or `IN_PROGRESS` st
 gh pr checks {pr_number} --json name,state,link
 ```
 
-Poll every 30 seconds. If checks haven't settled after 10 minutes, tell the user and stop.
+Poll every 30 seconds. Start a fresh timer when step 2a begins in each round. If checks haven't settled after 10 minutes, stop and report the timeout with ⏳ in the final output.
 
 While waiting, print a brief status update each poll (e.g. "Waiting for CI... 3/6 checks complete").
 
@@ -81,11 +83,11 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --jq '[.[] | select(.user.
 
 In round 1, collect this per-bot baseline at the start of this step because there is no prior push. In subsequent rounds, use the pre-push baseline recorded in step 2j.
 
-Poll every 30 seconds for up to 10 minutes:
+Poll every 30 seconds for up to 10 minutes, starting a fresh timer when step 2b begins in each round:
 - In round 1, if any bot PR review or issue comment already exists, proceed to step 2c and let the completeness check decide whether it is ready. If no bot review/comment exists yet but bots are expected, poll until at least one bot has posted a review or issue comment, or until the timeout expires.
 - In subsequent rounds, poll until **all** bots that posted complete reviews/comments in the immediately preceding round have posted a new PR review or issue comment newer than their pre-push baseline.
 
-If the polling window expires before all expected bots respond, proceed with whatever complete reviews are available and note any missing bots in the final summary.
+If the polling window expires before all expected bots respond, proceed with whatever complete reviews are available. Record the timeout and missing bots for the final summary, even if a later round succeeds.
 
 If no bots are expected to post reviews on this PR (i.e., no bot-related CI checks like `claude-review`, and no bots have ever commented or reviewed), skip this step.
 
@@ -231,6 +233,8 @@ If this is round 10 or higher, stop looping — tell the user the remaining issu
 ---
 
 ## Step 3: Summary
+
+If any polling timeout occurred, the final output must include a prominent ⏳ timeout line. Name the round, the timed-out phase (CI or bot review), and the pending checks or missing bots. Include this line even if later rounds succeed. For example: `⏳ Timeout reached in round 2: CI exceeded its 10-minute polling window; e2e is still pending.`
 
 Print a summary table of everything fixed across all rounds:
 
